@@ -1,8 +1,27 @@
 global:
   auth:
-    enabled: true # if you set this true, it will check username, password and allowed ip's if set
+    enabled: true # set this true if you want to use authentication
     username: admin
     password: admin
     iplist:
       - 0.0.0.0
       - 127.0.0.1
+
+envfiles:
+  project1:
+    default: dev
+    environments:
+      dev:
+        path: /home/ali/pyt/test.env
+        excludes:
+          - MYSQL_USERNAME
+          - TEST
+  project2:
+    default: dev
+    environments:
+      dev:
+        path: /home/ali/pyt/project2_dev.env
+      stage:
+        path: /home/ali/pyt/project2_stage.env
+      prod:
+        path: /home/ali/pyt/project2_prod.env

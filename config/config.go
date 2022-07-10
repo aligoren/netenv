@@ -17,8 +17,19 @@ type auth struct {
 	IPList   []string // this will use for allowed ip addresses
 }
 
+type envfiles struct {
+	Default      string
+	Environments map[string]environment
+}
+
+type environment struct {
+	Path     string
+	Excludes []string
+}
+
 type Config struct {
-	Global global
+	Global   global
+	EnvFiles map[string]envfiles
 }
 
 func GetConfig() (*Config, error) {

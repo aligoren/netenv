@@ -4,9 +4,11 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"os"
 	"strings"
 
 	"github.com/aligoren/netenv/config"
+	"github.com/joho/godotenv"
 )
 
 type Command struct {
@@ -16,7 +18,7 @@ type Command struct {
 }
 
 func (c *Command) parseCommand() []string {
-	return strings.Split(strings.ToLower(c.CommandText), ":")
+	return strings.Split(c.CommandText, ":")
 }
 
 func (c *Command) checkIpList() error {
@@ -30,7 +32,7 @@ func (c *Command) checkIpList() error {
 			}
 		}
 
-		return errors.New("ip is not allowed")
+		return errors.New(IP_IS_NOT_ALLOWED)
 	}
 
 	return nil
@@ -44,14 +46,14 @@ func (c *Command) checkAuth() ([]string, error) {
 	if c.Config.Global.Auth.Enabled {
 
 		if strings.ToLower(commands[0]) != "auth" {
-			return nil, errors.New("auth is required")
+			return nil, errors.New(AUTH_IS_REQUIRED)
 		}
 
 		username := commands[1]
 		password := commands[2]
 
 		if username != c.Config.Global.Auth.Username || password != c.Config.Global.Auth.Password {
-			return nil, errors.New("username or password is wrong")
+			return nil, errors.New(USERNAME_OR_PASSWORD_IS_WRONG)
 		}
 
 		err := c.checkIpList()
@@ -67,6 +69,73 @@ func (c *Command) checkAuth() ([]string, error) {
 	return commands, nil
 }
 
+func parseCustomVariables(selectedVariables string, data map[string]string) (map[string]string, error) {
+	customVariables := make(map[string]string)
+
+	variables := strings.Split(selectedVariables, ",")
+
+	for _, variable := range variables {
+		value := data[variable]
+		if value != "" {
+			customVariables[variable] = data[variable]
+		}
+	}
+
+	if len(customVariables) == 0 {
+		return nil, errors.New(THERE_IS_NO_KEY_VALUE_PAIR_FOUND)
+	}
+
+	return customVariables, nil
+}
+
+func (c *Command) parseEnv(commands []string) (map[string]string, error) {
+	var file string
+	var environment string
+	var selectedVariables string
+
+	for _, commmand := range commands {
+		splittedCommand := strings.Split(commmand, "$")
+		if len(splittedCommand) > 0 {
+			switch strings.ToLower(splittedCommand[0]) {
+			case "file":
+				file = splittedCommand[1]
+			case "env":
+				environment = splittedCommand[1]
+			case "var":
+				selectedVariables = splittedCommand[1]
+			}
+		}
+	}
+
+	cfg := c.Config.EnvFiles[file]
+
+	if environment == "" {
+		environment = cfg.Default
+	}
+
+	dotFile, err := os.OpenFile(cfg.Environments[environment].Path, os.O_RDONLY, 0744)
+	if err != nil {
+		return nil, err
+	}
+
+	data, err := godotenv.Parse(dotFile)
+	if err != nil {
+		return nil, err
+	}
+
+	if selectedVariables == "" || selectedVariables == "*" {
+		return data, nil
+	}
+
+	customVariables, err := parseCustomVariables(selectedVariables, data)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return customVariables, nil
+}
+
 // HandleCommand it takes command as a string and takes config.
 // it will always check the authentication
 func (c *Command) HandleCommand() string {
@@ -76,11 +145,28 @@ func (c *Command) HandleCommand() string {
 		return fmt.Sprintf("%s\n", err)
 	}
 
-	cmd := commands[len(commands)-1]
+	cmds := commands
 
-	if cmd == "echo" {
-		return "Hello :)\n"
+	if c.Config.Global.Auth.Enabled {
+		cmds = commands[3:]
 	}
 
-	return ""
+	if cmds[0] == "echo" {
+		return HELLO
+	}
+
+	variables, err := c.parseEnv(cmds)
+	if err != nil {
+		return fmt.Sprintf("%s\n", err)
+	}
+
+	var output strings.Builder
+
+	for key, variable := range variables {
+		output.WriteString(fmt.Sprintf("{%s:%s}$", key, variable))
+	}
+
+	value := strings.TrimRight(output.String(), "$")
+
+	return fmt.Sprintf("%s\n", value)
 }
