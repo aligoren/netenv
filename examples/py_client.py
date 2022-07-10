@@ -8,10 +8,10 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
     # s.sendall(b"echo\n")
     # s.sendall(b"auth:admin:admin:echo\n")
     # s.sendall(b"auth:admin:admin:file$project1:env$dev:var$name,TEST,MYSQL_USERNAME\n")
-    # s.sendall(b"auth:admin:admin:file$project1:env$dev:var$*\n")
+    s.sendall(b"auth:admin:admin:file$project1:env$dev:var$*\n")
     # s.sendall(b"auth:admin:admin:file$project1:env$dev:var$TEST\n")
     # s.sendall(b"auth:admin:admin:file$project2:env$prod:var$name\n")
-    s.sendall(b"file$project2:env$prod:var$name\n")
+    # s.sendall(b"file$project2:env$prod:var$name\n")
     #s.sendall(b"echo\n")
     data = s.recv(1024)
 
