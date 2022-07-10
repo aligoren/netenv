@@ -1,0 +1,8 @@
+global:
+  auth:
+    enabled: true # if you set this true, it will check username, password and allowed ip's if set
+    username: admin
+    password: admin
+    iplist:
+      - 0.0.0.0
+      - 127.0.0.1
