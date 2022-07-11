@@ -12,6 +12,11 @@ type Server struct {
 }
 
 func New(addr string) Server {
+
+	if addr == "" {
+		addr = ":8080"
+	}
+
 	return Server{
 		addr,
 	}
