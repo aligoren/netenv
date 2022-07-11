@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/aligoren/netenv/config"
+	"github.com/aligoren/netenv/internal/helpers"
 	"github.com/joho/godotenv"
 )
 
@@ -69,15 +70,28 @@ func (c *Command) checkAuth() ([]string, error) {
 	return commands, nil
 }
 
-func parseCustomVariables(selectedVariables string, data map[string]string) (map[string]string, error) {
-	customVariables := make(map[string]string)
+func parseCustomVariables(selectedVariables string, data map[string]string, excludes []string) (map[string]string, error) {
 
-	variables := strings.Split(selectedVariables, ",")
+	customVariables := make(map[string]string)
+	variables := make([]string, len(data))
+
+	if selectedVariables == "" || selectedVariables == "*" {
+		for variable := range data {
+			variables = append(variables, variable)
+		}
+	} else {
+		variables = strings.Split(selectedVariables, ",")
+	}
+
+	hasExcludes := len(excludes) > 0
 
 	for _, variable := range variables {
 		value := data[variable]
 		if value != "" {
-			customVariables[variable] = data[variable]
+			isInExcludedList := hasExcludes && helpers.IsSliceContainsString(variable, excludes)
+			if !isInExcludedList {
+				customVariables[variable] = data[variable]
+			}
 		}
 	}
 
@@ -113,7 +127,9 @@ func (c *Command) parseEnv(commands []string) (map[string]string, error) {
 		environment = cfg.Default
 	}
 
-	dotFile, err := os.OpenFile(cfg.Environments[environment].Path, os.O_RDONLY, 0744)
+	env := cfg.Environments[environment]
+
+	dotFile, err := os.OpenFile(env.Path, os.O_RDONLY, 0744)
 	if err != nil {
 		return nil, err
 	}
@@ -123,11 +139,7 @@ func (c *Command) parseEnv(commands []string) (map[string]string, error) {
 		return nil, err
 	}
 
-	if selectedVariables == "" || selectedVariables == "*" {
-		return data, nil
-	}
-
-	customVariables, err := parseCustomVariables(selectedVariables, data)
+	customVariables, err := parseCustomVariables(selectedVariables, data, env.Excludes)
 
 	if err != nil {
 		return nil, err
