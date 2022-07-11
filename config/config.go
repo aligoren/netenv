@@ -7,6 +7,7 @@ import (
 )
 
 type global struct {
+	Addr string
 	Auth auth
 }
 
