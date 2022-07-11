@@ -17,6 +17,7 @@ You only need to listen to TCP with some arguments
 
 ```yaml
 global:
+  addr: ":8080"
   auth:
     enabled: true # set this true if you want to use authentication
     username: admin
@@ -33,7 +34,6 @@ envfiles:
         path: /home/ali/pyt/test.env
         excludes:
           - MYSQL_USERNAME
-          - TEST
   project2:
     default: dev
     environments:
